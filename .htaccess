@@ -1,0 +1,6 @@
+# Block web access to secrets, git data and internal folders
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 /\.git
+RedirectMatch 404 ^/config/
