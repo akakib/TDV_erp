@@ -17,3 +17,6 @@ Thumbs.db
 /storage/logs/
 /cache/
 /uploads/
+
+# Local Claude preview config
+.claude/
