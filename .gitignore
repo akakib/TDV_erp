@@ -1,0 +1,19 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies
+/vendor/
+/node_modules/
+
+# Environment / secrets
+.env
+*.local.php
+
+# Logs, cache, uploads
+*.log
+/storage/logs/
+/cache/
+/uploads/
