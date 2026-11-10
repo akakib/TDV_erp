@@ -4,3 +4,4 @@
 </FilesMatch>
 RedirectMatch 404 /\.git
 RedirectMatch 404 ^/config/
+RedirectMatch 404 ^/docs/
