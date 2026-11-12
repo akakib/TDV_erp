@@ -3,7 +3,7 @@
   'use strict';
 
   // ---------- State ----------
-  var STORE = 'tdv_proto_state_v2', ROLE = 'tdv_proto_role';
+  var STORE = 'tdv_proto_state_v3', ROLE = 'tdv_proto_role';
   var S = load();
   var role = safeGet(ROLE);
   var ui = { tab: {}, filter: {}, dropdown: null };
@@ -89,37 +89,42 @@
 
   // ---------- Navigation / permissions ----------
   var NAV = [
-    { sec: 'Overview' },
+    { sec: 'Home' },
     { id: 'dashboard', label: 'Dashboard', icon: 'home', roles: 'am' },
-    { id: 'approvals', label: 'Approvals', icon: 'check', roles: 'am', count: true },
-    { sec: 'Projects' },
+    { id: 'approvals', label: 'My Approvals', icon: 'check', roles: 'am', count: true },
+    { id: 'tasks', label: 'Tasks', icon: 'kanban', roles: 'am' },
+    { sec: 'Funding' },
     { id: 'proposals', label: 'Partner Proposals (PPF)', icon: 'file', roles: 'am' },
     { id: 'projects', label: 'Projects', icon: 'folder', roles: 'am' },
     { id: 'programs', label: 'Departments & Programs', icon: 'layers', roles: 'am' },
+    { id: 'advances', label: 'Advance Requests (HQ)', icon: 'coins', roles: 'am' },
+    { sec: 'Correspondence' },
+    { id: 'register', label: 'Document Register', icon: 'shield', roles: 'am' },
+    { id: 'documents', label: 'Document Library', icon: 'file', roles: 'am' },
+    { sec: 'Requests & Supply' },
+    { id: 'requisitions', label: 'Requisitions', icon: 'list', roles: 'am', count: 'req' },
+    { id: 'procurement', label: 'Procurement', icon: 'cart', roles: 'am' },
+    { id: 'suppliers', label: 'Suppliers', icon: 'truck', roles: 'am' },
+    { id: 'inventory', label: 'Stores & Stock', icon: 'box', roles: 'am' },
+    { id: 'assets', label: 'Vehicles & Assets', icon: 'car', roles: 'am' },
+    { sec: 'Finance' },
+    { id: 'receipts', label: 'Cash Receipts (Form 250)', icon: 'wallet', roles: 'am' },
+    { id: 'finance', label: 'Accounts & Budgets', icon: 'coins', roles: 'a' },
+    { sec: 'Field & Delivery' },
     { id: 'distributions', label: 'Distributions', icon: 'box', roles: 'am' },
-    { id: 'tasks', label: 'Tasks', icon: 'kanban', roles: 'am' },
+    { id: 'field', label: 'Field & Facilities', icon: 'map', roles: 'am' },
+    { id: 'closeout', label: 'Close-out & Feedback', icon: 'check', roles: 'am', count: 'co' },
+    { id: 'reports', label: 'M&E Reports', icon: 'chart', roles: 'am' },
     { sec: 'People' },
     { id: 'org', label: 'Organisation', icon: 'org', roles: 'am' },
     { id: 'staff', label: 'Staff', icon: 'users', roles: 'am' },
     { id: 'attendance', label: 'Attendance & Leave', icon: 'clock', roles: 'am' },
     { id: 'payroll', label: 'Payroll', icon: 'wallet', roles: 'a' },
-    { sec: 'Operations' },
-    { id: 'requisitions', label: 'Requisitions', icon: 'list', roles: 'am', count: 'req' },
-    { id: 'procurement', label: 'Procurement', icon: 'cart', roles: 'am' },
-    { id: 'suppliers', label: 'Suppliers', icon: 'truck', roles: 'am' },
-    { id: 'inventory', label: 'Inventory', icon: 'box', roles: 'am' },
-    { id: 'receipts', label: 'Payment Receipts (F-250)', icon: 'wallet', roles: 'am' },
-    { id: 'finance', label: 'Finance & Accounts', icon: 'coins', roles: 'a' },
-    { id: 'register', label: 'Document Register', icon: 'shield', roles: 'am' },
-    { id: 'documents', label: 'Documents', icon: 'file', roles: 'am' },
-    { sec: 'Field & Reporting' },
-    { id: 'field', label: 'Field & Facilities', icon: 'map', roles: 'am' },
-    { id: 'reports', label: 'M&E Reports', icon: 'chart', roles: 'am' },
     { id: 'communication', label: 'Communication', icon: 'mega', roles: 'am' },
-    { id: 'assets', label: 'Vehicles & Assets', icon: 'car', roles: 'am' },
     { sec: 'Administration', roles: 'a' },
     { id: 'users', label: 'Users & Roles', icon: 'key', roles: 'a' },
     { id: 'workflow', label: 'Approval Workflows', icon: 'list', roles: 'a' },
+    { id: 'numbering', label: 'Numbering & Templates', icon: 'print', roles: 'a' },
     { id: 'audit', label: 'Audit Log', icon: 'shield', roles: 'a' },
     { id: 'settings', label: 'Settings', icon: 'cog', roles: 'a' }
   ];
@@ -163,7 +168,7 @@
     NAV.forEach(function (n) {
       if (n.sec) { if (!n.roles || n.roles.indexOf(isAdmin() ? 'a' : 'm') > -1) nav += '<h6>' + n.sec + '</h6>'; return; }
       if (!canSee(n.id)) return;
-      nav += '<a href="#/' + n.id + '" class="' + (active === n.id ? 'on' : '') + '">' + ic(n.icon) + '<span>' + n.label + '</span>' + (n.count ? (function () { var c = n.count === 'req' ? myQueue().filter(function (a) { return a.type === 'Requisition'; }).length : q; return c ? '<span class="cnt">' + c + '</span>' : ''; })() : '') + '</a>';
+      nav += '<a href="#/' + n.id + '" class="' + (active === n.id ? 'on' : '') + '">' + ic(n.icon) + '<span>' + n.label + '</span>' + (n.count ? (function () { var c = n.count === 'req' ? myQueue().filter(function (a) { return a.type === 'Requisition'; }).length : n.count === 'co' ? S.closeouts.filter(function (x) { return coStatus(x) === 'Overdue'; }).length : q; return c ? '<span class="cnt">' + c + '</span>' : ''; })() : '') + '</a>';
     });
     return '<div class="shell">' +
       '<aside class="side" id="side"><div class="brandbox"><img src="assets/logo.png" alt="TDV logo"><div><b>TDV ERP</b><span>Bangladesh Coordination Office</span></div></div>' +
@@ -275,6 +280,10 @@
     var ext = S.register.filter(regOpen);
     h += '<div class="card"><div class="card-h"><h3>Waiting outside the office</h3><div class="spacer"></div><a href="#/register" class="small">Register</a></div>' + (ext.length ? ext.slice(0, 5).map(function (r) { return '<div class="list-item" data-act="openReg" data-id="' + esc(r.ref) + '"><div style="flex:1;min-width:0"><div class="t1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.particular) + '</div><div class="t2">' + esc(r.ref) + ' · ' + daysSince(r.history[r.history.length - 1][0]) + ' days</div></div>' + regBadge(r.status) + '</div>'; }).join('') : '<div class="empty">Nothing pending at CiC, RRRC or HQ.</div>') + '</div>';
 
+    // Close-out deadlines
+    var cos = coSorted().filter(function (x) { return !x.c.submitted; }).slice(0, 4);
+    h += '<div class="card"><div class="card-h"><h3>Close-out deadlines</h3><div class="spacer"></div><a href="#/closeout" class="small">Close-out</a></div>' + (cos.length ? cos.map(function (x) { var n = coNext(x.c); return '<div class="list-item" data-act="openCo" data-i="' + x.i + '"><div style="flex:1;min-width:0"><div class="t1" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(pname(x.c.project)) + '</div><div class="t2">' + esc(n[0]) + ' · ' + date(n[1]) + '</div></div>' + badge(coStatus(x.c)) + '</div>'; }).join('') : '<div class="empty">No open close-outs.</div>') + '</div>';
+
     // Program donut (admin) or tasks (moderator)
     if (isAdmin()) {
       var tb = S.programs.reduce(function (s, p) { return s + p.budget; }, 0), cols = ['#008dd2', '#17915a', '#e0a020', '#5b5bd6', '#d6463a', '#0b2a43'], acc = 0, stops = [];
@@ -294,7 +303,7 @@
     var t = tabs('apr', [['mine', 'Waiting for me', myQueue().length], ['Pending', 'All pending', all.filter(function (a) { return a.status === 'Pending'; }).length], ['Approved', 'Approved'], ['Returned', 'Returned'], ['Deferred', 'Deferred'], ['Rejected', 'Rejected']], 'mine');
     var type = ui.filter.aprType || '';
     var list = (t.cur === 'mine' ? myQueue() : all.filter(function (a) { return a.status === t.cur; })).filter(function (a) { return !type || a.type === type; });
-    var types = ['Requisition', 'Proposal', 'Purchase', 'Payment', 'Leave', 'Project', 'Budget', 'Activity', 'Recruitment'];
+    var types = ['Requisition', 'Proposal', 'Advance', 'Purchase', 'Payment', 'Leave', 'Project', 'Budget', 'Activity', 'Recruitment'];
     var h = head('Approvals', 'One approval engine for department requisitions, partner proposals, purchases, payments, leave and projects.', '', '');
     h += '<div class="notice" style="margin-bottom:14px">' + ic('shield') + '<span>' + (isAdmin() ? 'As <b>Admin (Country Director)</b> you give the final “Approved by” signature and act for Finance, HQ and RRRC steps. “Checked by” and “Controlled by” steps belong to coordinators.' : 'As <b>Moderator (Coordinator)</b> you sign the “Checked by” and “Controlled by” steps of the department forms. After you, the request goes to the Country Director.') + '</span></div>';
     h += t.html + '<div class="card"><div class="toolbar"><select class="select" data-act="filter" data-k="aprType"><option value="">All types</option>' + types.map(function (x) { return '<option ' + (x === type ? 'selected' : '') + '>' + x + '</option>'; }).join('') + '</select><span class="muted small">' + list.length + ' requests</span></div>';
@@ -537,7 +546,7 @@
     var wh = ui.filter.wh || '';
     var whs = S.stock.map(function (s) { return s.wh; }).filter(function (v, i, a) { return a.indexOf(v) === i; });
     var list = S.stock.filter(function (s) { return !wh || s.wh === wh; });
-    var h = head('Inventory & Warehouse', 'Multi-warehouse, camp-wise stock with expiry and minimum-stock alerts.', '<button class="btn" data-act="toast" data-msg="Stock ledger exported to Excel (demo)">' + ic('down') + 'Ledger</button>' + (isAdmin() ? '<button class="btn primary" data-act="toast" data-msg="Stock transfer form (demo)">' + ic('swap') + 'Transfer stock</button>' : ''));
+    var h = head('Stores & Stock', 'Multi-warehouse, camp-wise stock with expiry and minimum-stock alerts.', '<button class="btn" data-act="toast" data-msg="Stock ledger exported to Excel (demo)">' + ic('down') + 'Ledger</button>' + (isAdmin() ? '<button class="btn primary" data-act="toast" data-msg="Stock transfer form (demo)">' + ic('swap') + 'Transfer stock</button>' : ''));
     h += '<div class="grid g4" style="margin-bottom:16px">' + kpi('box', '', 'Stock items', S.stock.length, whs.length + ' warehouses / stores', '#/inventory') + kpi('alert', 'bad', 'Below minimum', S.stock.filter(function (s) { return s.qty < s.min; }).length, 'reorder needed', '#/inventory') + kpi('clock', 'warn', 'Expiring in 30 days', S.stock.filter(function (s) { return s.expiry !== '-' && daysTo(s.expiry) <= 30; }).length, 'use or redistribute', '#/inventory') + kpi('truck', 'ok', 'Pending GRN', S.procurement.filter(function (p) { return p.stage === 'GRN'; }).length, 'goods to receive', '#/procurement') + '</div>';
     h += '<div class="card"><div class="toolbar"><select class="select" data-act="filter" data-k="wh"><option value="">All warehouses</option>' + whs.map(function (w) { return '<option ' + (w === wh ? 'selected' : '') + '>' + w + '</option>'; }).join('') + '</select></div>' + table([
       { t: 'Item', v: function (s) { return '<b>' + esc(s.item) + '</b><div class="small muted">' + s.sku + '</div>'; } },
@@ -554,7 +563,7 @@
 
   PAGES.finance = function () {
     var t = tabs('fin', [['bva', 'Budget vs actual'], ['donor', 'By donor'], ['vouchers', 'Vouchers'], ['cash', 'Cash & bank']]);
-    var h = head('Finance & Accounts', 'Project, donor, department and program dimensions on every posting.', '<button class="btn" data-act="toast" data-msg="Financial report exported (demo)">' + ic('down') + 'Export</button><button class="btn primary" data-act="toast" data-msg="New voucher form (demo)">' + ic('plus') + 'New voucher</button>');
+    var h = head('Accounts & Budgets', 'Project, donor, department and program dimensions on every posting.', '<button class="btn" data-act="toast" data-msg="Financial report exported (demo)">' + ic('down') + 'Export</button><button class="btn primary" data-act="toast" data-msg="New voucher form (demo)">' + ic('plus') + 'New voucher</button>');
     h += t.html;
     if (t.cur === 'bva') {
       h += '<div class="card">' + table([
@@ -590,7 +599,7 @@
   };
 
   PAGES.documents = function () {
-    var h = head('Documents', 'Version control, expiry reminders, access control and archive.', '<button class="btn primary" data-act="toast" data-msg="Upload dialog would open here (demo)">' + ic('plus') + 'Upload</button>');
+    var h = head('Document Library', 'Version control, expiry reminders, access control and archive.', '<button class="btn primary" data-act="toast" data-msg="Upload dialog would open here (demo)">' + ic('plus') + 'Upload</button>');
     var exp = S.documents.filter(function (d) { return d.expiry !== '-' && daysTo(d.expiry) <= 30; });
     if (exp.length) h += '<div class="notice warn" style="margin-bottom:14px">' + ic('alert') + '<span><b>' + exp.length + ' documents expire within 30 days:</b> ' + exp.map(function (d) { return esc(d.name); }).join(', ') + '.</span></div>';
     h += '<div class="card">' + table([
@@ -826,6 +835,7 @@
       var stepName = curStep(a);
       if (d === 'Approved') { (a.log = a.log || [])[a.step] = [stepName, me().name, today()]; a.step++; if (a.step >= a.chain.length) a.status = 'Approved'; }
       else { a.status = d; a.remark = rm; }
+      afterDecide(a);
       audit(d === 'Approved' ? 'Approved' : d, a.id + ' (' + stepName + ')');
       save(); render();
       toast(d === 'Approved' ? (a.status === 'Approved' ? a.id + ' fully approved' : a.id + ' approved, sent to ' + curStep(a)) : a.id + ' ' + d.toLowerCase());
@@ -1210,7 +1220,7 @@
   function rcTotal(r) { return r.items.reduce(function (s, i) { return s + i.q * i.p; }, 0); }
   PAGES.receipts = function () {
     var month = S.receipts.filter(function (r) { return r.date.slice(0, 7) === today().slice(0, 7); });
-    var h = head('Payment Receipts (Form 250)', 'Gider (Ödeme) Makbuzu. Used only when an invoice (fatura) cannot be obtained for goods, work or services paid in cash.', '<button class="btn primary" data-act="newReceipt">' + ic('plus') + 'New receipt</button>');
+    var h = head('Cash Receipts (Form 250)', 'Gider (Ödeme) Makbuzu. Used only when an invoice (fatura) cannot be obtained for goods, work or services paid in cash.', '<button class="btn primary" data-act="newReceipt">' + ic('plus') + 'New receipt</button>');
     h += '<div class="notice" style="margin-bottom:14px">' + ic('alert') + '<span>Every receipt needs the payee\'s signature and two TDV employees in charge. The amount is written in words automatically, and the printout matches the bilingual Turkish / English Form 250.</span></div>';
     h += '<div class="grid g4" style="margin-bottom:16px">' + kpi('wallet', '', 'Paid this month', money(month.reduce(function (s, r) { return s + rcTotal(r); }, 0)), month.length + ' receipts', '#/receipts') + kpi('refresh', 'ok', 'Monthly recurring', S.receipts.filter(function (r) { return r.recurring; }).length, 'e.g. imam honorarium', '#/receipts') + kpi('clock', 'warn', 'Not posted to finance', S.receipts.filter(function (r) { return r.status !== 'Posted'; }).length, 'Admin posts them', '#/receipts') + kpi('file', '', 'All receipts', S.receipts.length, 'this year', '#/receipts') + '</div>';
     h += '<div class="card">' + table([
@@ -1258,7 +1268,7 @@
   };
   function regOpen(r) { return !/^Approved|^Not Approved/.test(r.status); }
   function regBadge(s) { var c = /^Not/.test(s) ? 'bad' : /^Approved/.test(s) ? 'ok' : /Headquarter/.test(s) ? 'violet' : /CiC|RRRC/.test(s) ? 'warn' : 'info'; return '<span class="badge ' + c + '">' + esc(s) + '</span>'; }
-  function regRef(kind, dp, d) { var yr = d.slice(0, 4), n = S.register.filter(function (r) { return r.kind === kind && r.dept === dp && r.date.slice(0, 4) === yr; }).length + 1; return (kind === 'Finance' ? 'BD' : 'TDF') + '-' + dp + '-' + d.replace(/-/g, '') + '-' + String(n).padStart(3, '0'); }
+  function regRef(kind, dp, d) { var yr = d.slice(0, 4), n = 1 + S.register.filter(function (r) { return r.kind === kind && r.dept === dp && r.date.slice(0, 4) === yr; }).reduce(function (m, r) { return Math.max(m, +String(r.ref).split('-').pop() || 0); }, 0); return (kind === 'Finance' ? 'BD' : 'TDF') + '-' + dp + '-' + d.replace(/-/g, '') + '-' + String(n).padStart(3, '0'); }
   PAGES.register = function () {
     var t = tabs('reg', [['Official', 'Official documents', S.register.filter(function (r) { return r.kind === 'Official'; }).length], ['Finance', 'Finance documents', S.register.filter(function (r) { return r.kind === 'Finance'; }).length]]);
     var dp = ui.filter.regDept || '';
@@ -1269,7 +1279,7 @@
     h += t.html + '<div class="card"><div class="toolbar"><select class="select" data-act="filter" data-k="regDept"><option value="">All departments</option>' + S.departments.map(function (d) { return '<option value="' + d.code + '" ' + (dp === d.code ? 'selected' : '') + '>' + d.code + ' - ' + esc(d.name) + '</option>'; }).join('') + '</select><span class="small muted">Reference format: <b>' + (t.cur === 'Finance' ? 'BD' : 'TDF') + '-DEPT-YYYYMMDD-SERIAL</b>, generated automatically</span></div>';
     var cols = [
       { t: 'SL', cls: 'num muted', v: function (r, i) { return i + 1; } },
-      { t: 'Particular', v: function (r) { return '<b>' + esc(r.particular) + '</b>'; } },
+      { t: 'Particular', v: function (r) { return '<b>' + esc(r.particular) + '</b>' + (r.about ? '<div class="small muted">' + esc(aboutText(r)) + '</div>' : ''); } },
       { t: 'Dept', v: function (r) { return '<span class="tag">' + r.dept + '</span>'; } },
       { t: 'Date', v: function (r) { return date(r.date); } },
       { t: 'BD Coordination Office ref.', cls: 'num', v: function (r) { return '<b>' + esc(r.ref) + '</b>'; } },
@@ -1285,7 +1295,7 @@
     var r = byId(S.register, ref, 'ref'); if (!r) return; var d = dept(r.dept) || {};
     var flow = REG_FLOW[r.kind], next = flow.filter(function (s) { return s !== r.status && r.history.map(function (x) { return x[1]; }).indexOf(s) < 0; });
     overlay('<div class="drawer"><div class="dh"><div style="flex:1"><div class="small muted">' + r.kind + ' document · ' + esc(d.name || r.dept) + '</div><h3 style="margin-top:4px">' + esc(r.particular) + '</h3><div style="margin-top:8px">' + regBadge(r.status) + '</div></div><button class="btn sm ghost" data-act="close" aria-label="Close">' + ic('x') + '</button></div><div class="db">' +
-      '<dl class="kv"><dt>BD office ref.</dt><dd><b>' + esc(r.ref) + '</b></dd><dt>Date</dt><dd>' + date(r.date) + '</dd><dt>Department</dt><dd>' + r.dept + '</dd>' + (r.kind === 'Official' ? '<dt>RRRC / CiC ref.</dt><dd>' + (esc(r.ext) || '-') + '</dd>' : '') + '<dt>TDV HQ ref.</dt><dd>' + (esc(r.hq) || '-') + '</dd><dt>' + (r.kind === 'Official' ? 'PCR' : 'Approved document') + '</dt><dd>' + (r.link ? esc(r.link) : '-') + '</dd></dl>' +
+      '<dl class="kv"><dt>BD office ref.</dt><dd><b>' + esc(r.ref) + '</b></dd><dt>Date</dt><dd>' + date(r.date) + '</dd><dt>Department</dt><dd>' + r.dept + '</dd><dt>Linked to</dt><dd>' + aboutLink(r) + '</dd>' + (r.kind === 'Official' ? '<dt>RRRC / CiC ref.</dt><dd>' + (esc(r.ext) || '-') + '</dd>' : '') + '<dt>TDV HQ ref.</dt><dd>' + (esc(r.hq) || '-') + '</dd><dt>' + (r.kind === 'Official' ? 'PCR' : 'Approved document') + '</dt><dd>' + (r.link ? esc(r.link) : '-') + '</dd></dl>' +
       '<div class="section-t">Status history</div><div class="timeline">' + r.history.map(function (x) { return '<div><b>' + esc(x[1]) + '</b><div class="small muted">' + date(x[0]) + '</div></div>'; }).join('') + '</div>' +
       (regOpen(r) ? '<div class="section-t">Update status</div><div class="form-grid"><div class="field"><label>New status</label><select class="select" id="regNext">' + opts(next) + '</select></div><div class="field"><label>Date</label><input class="input" type="date" id="regDate" value="' + today() + '"></div>' + (r.kind === 'Official' ? '<div class="field"><label>RRRC / CiC ref.</label><input class="input" id="regExt" value="' + esc(r.ext) + '"></div>' : '') + '<div class="field"><label>TDV HQ ref.</label><input class="input" id="regHq" value="' + esc(r.hq) + '"></div><div class="field full"><label>' + (r.kind === 'Official' ? 'PCR file' : 'Approved document') + '</label><input class="input" id="regLink" value="' + esc(r.link) + '" placeholder="Upload or file name"></div></div>' : '<div class="notice" style="margin-top:14px">' + ic('check') + '<span>Closed. No further status changes.</span></div>') +
       '</div>' + (regOpen(r) ? '<div class="df"><button class="btn primary" data-act="regUpdate" data-id="' + esc(r.ref) + '">Save status</button></div>' : '') + '</div>');
@@ -1307,6 +1317,12 @@
       { t: 'Reports to', v: function (d) { return esc(d.line === '-' ? '-' : d.line); } },
       { t: 'Requisition chain', v: function (d) { var k = Object.keys(S.reqTemplates).filter(function (c) { return S.reqTemplates[c].dept === d.code; })[0]; if (!k) return '<span class="muted small">Document register, finance advances</span>'; var tp = S.reqTemplates[k]; return '<span class="small">' + [tp.requester].concat(tp.steps.map(function (s) { return s[1]; })).join(' → ') + '</span>'; } }
     ], S.departments) + '</div>';
+    var holders = Object.keys(S.people).filter(function (k) { return ['HQ Approval', 'RRRC / CiC'].indexOf(k) < 0; });
+    h += '<div class="card" style="margin-top:16px"><div class="card-h"><div><h3>Role holders</h3><div class="small muted">Approval chains use roles. Change the person here when staff change; no chain needs editing.</div></div></div>' + table([
+      { t: 'Role', v: function (k) { return '<b>' + esc(k) + '</b>'; } },
+      { t: 'Held by', v: function (k) { return isAdmin() ? '<select class="select sm" data-chg="holder" data-role="' + esc(k) + '" style="max-width:260px">' + opts(S.staff.map(function (x) { return x.name; }).concat(S.staff.some(function (x) { return x.name === S.people[k]; }) ? [] : [S.people[k]]), S.people[k]) + '</select>' : esc(S.people[k]); } },
+      { t: 'Signs in', v: function (k) { var n = S.chains.filter(function (c) { return c.steps.indexOf(k) > -1; }).length; return n ? n + ' chain' + (n > 1 ? 's' : '') : '<span class="muted small">-</span>'; } }
+    ], holders) + '</div>';
     return h;
   };
 
@@ -1416,6 +1432,7 @@
     var p = ppf(el.dataset.id), tot = ppfTotals(p), map = { 'Construction': 'PRG-02', 'Water well': 'PRG-02', 'Education': 'PRG-03', 'Orphan (Yetim)': 'PRG-03', 'Food (Ramadan)': 'PRG-01', 'Qurban': 'PRG-01', 'Religious services': 'PRG-05', 'Vocational training': 'PRG-06' };
     var id = nextId('PRJ-2026-', S.projects, 'id', 3);
     S.projects.unshift({ id: id, name: p.name, program: map[p.type] || 'PRG-04', donor: 'TDV HQ Türkiye', camps: p.locations.map(function (l) { return l.v; }).slice(0, 3), budget: Math.round(tot.local), spent: 0, status: 'Ongoing', progress: 0, start: p.start, end: p.end, manager: (partner(p.partner) || {}).name || me().name, beneficiaries: 0, target: ppfBen(p), risk: 'Low', partner: p.partner, ppf: p.id });
+    S.closeouts.unshift({ project: id, stage: 'Whole project (partner ' + ((partner(p.partner) || {}).name || '') + ')', delivered: p.end, paid: '', items: { ack: false, pcr: false, fin: false, inv: false, media: false, benlist: false } });
     p.project = id; audit('Converted proposal', p.id + ' → ' + id); save(); location.hash = '#/project/' + id; toast(p.id + ' is now project ' + id + '. Feedback report due ' + date(addDays(p.end, 14)));
   };
 
@@ -1426,6 +1443,161 @@
   document.addEventListener('change', function (e) { var c = e.target.dataset && e.target.dataset.chg; if (c && CHG[c]) CHG[c](e.target); if (e.target.closest && e.target.closest('#ppfForm')) ppfCalc(); });
   document.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('#ppfForm')) ppfCalc(); });
   document.addEventListener('submit', function (e) { if (e.target.id !== 'ppfForm') return; e.preventDefault(); ppfSubmit(e.target); });
+
+  // =====================================================================
+  // Blueprint v2: advance requests, close-out, role holders, numbering, register links
+  // =====================================================================
+  BADGE.bad.push('Overdue'); BADGE.warn.push('Due soon', 'In approval'); BADGE.info.push('Open', 'Not due'); BADGE.violet.push('At HQ', 'Sent to HQ'); BADGE.ok.push('Received');
+  function monthName(m) { var d = new Date(m + '-01T00:00:00'); return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }); }
+  function projDept(pid) { var p = project(pid), g = p && byId(S.programs, p.program); return g ? g.dept : ''; }
+  function addWorkDays(d, n) { var x = new Date(d + 'T00:00:00'); while (n > 0) { x.setDate(x.getDate() + 1); var w = x.getDay(); if (w !== 5 && w !== 6) n--; } return x.toISOString().slice(0, 10); }
+  function letterhead(ref, d, dp) { return '<div class="lh"><img src="assets/logo-full.png" alt=""><div class="lh-t"><b>Türkiye Diyanet Foundation</b><span>Bangladesh Coordination Office</span><span>Cox\'s Bazar, Bangladesh</span></div><div class="lh-r"><div>Ref: <b>' + esc(ref) + '</b></div><div>Date: ' + date(d) + '</div><div>Department: ' + esc(dp) + '</div></div></div>'; }
+  function aboutText(r) { if (!r.about) return ''; var t = r.about[0], id = r.about[1], name = t === 'Project' ? pname(id) : t === 'Proposal' ? (ppf(id) || {}).name : t === 'Program' ? (byId(S.programs, id) || {}).name : id; return t + ': ' + (name || id); }
+  function aboutLink(r) {
+    if (!r.about) return '-'; var t = r.about[0], id = r.about[1];
+    if (t === 'Project') return '<a href="#/project/' + id + '">' + esc(pname(id)) + '</a>';
+    if (t === 'Proposal') return '<a href="#/proposal/' + id + '">' + id + '</a>';
+    if (t === 'Requisition') return '<button class="btn sm" data-act="openReq" data-id="' + id + '">' + id + '</button>';
+    if (t === 'Advance') return '<button class="btn sm" data-act="openAdv" data-id="' + id + '">' + id + '</button>';
+    return esc(aboutText(r));
+  }
+
+  // ---------- Advance requests ----------
+  function advTotal(ad) { return ad.lines.reduce(function (s, l) { return s + (+l[1] || 0); }, 0); }
+  function advStatus(ad) { var a = apr(ad.apr); if (!a) return 'Draft'; if (a.status === 'Pending') return a.chain[a.step] === 'HQ Approval' ? 'At HQ' : 'In approval'; return a.status === 'Approved' ? 'Received' : a.status; }
+  function advReceipts(ad) { return S.receipts.filter(function (r) { return r.date.slice(0, 7) === ad.month && projDept(r.project) === ad.dept; }); }
+  function advUsed(ad) { return advReceipts(ad).reduce(function (s, r) { return s + rcTotal(r); }, 0) + (ad.other || 0); }
+  PAGES.advances = function () {
+    var all = S.advances;
+    var h = head('Advance Requests', 'Monthly advance requests for regular expenses, sent from each department to TDV Headquarter. Approval creates the BD- finance register entry automatically, and spending is matched against the advance.', '<button class="btn primary" data-act="newAdv">' + ic('plus') + 'New advance request</button>');
+    h += '<div class="grid g4" style="margin-bottom:16px">' + kpi('clock', 'warn', 'In approval', all.filter(function (a) { return advStatus(a) === 'In approval'; }).length, 'Finance and Country Director', '#/advances') + kpi('mega', '', 'At Headquarter', all.filter(function (a) { return advStatus(a) === 'At HQ'; }).length, short(all.filter(function (a) { return advStatus(a) === 'At HQ'; }).reduce(function (s, a) { return s + advTotal(a); }, 0)) + ' requested', '#/advances') + kpi('coins', 'ok', 'Received', short(all.reduce(function (s, a) { return s + (a.received || 0); }, 0)), 'from HQ', '#/advances') + kpi('wallet', '', 'Spent from advances', short(all.filter(function (a) { return a.received; }).reduce(function (s, a) { return s + advUsed(a); }, 0)), 'payments and Form 250', '#/advances') + '</div>';
+    h += '<div class="card">' + table([
+      { t: 'Request', v: function (a) { return '<b>' + a.id + '</b><div class="small muted">' + date(a.date) + '</div>'; } },
+      { t: 'For month', v: function (a) { return monthName(a.month); } },
+      { t: 'Dept', v: function (a) { return '<span class="tag">' + a.dept + '</span>'; } },
+      { t: 'Amount', cls: 'right num', v: function (a) { return money(advTotal(a)); } },
+      { t: 'Register ref.', cls: 'num', v: function (a) { return a.reg ? esc(a.reg) : '<span class="muted small">after CD approval</span>'; } },
+      { t: 'Used', v: function (a) { if (!a.received) return '-'; var u = pct(advUsed(a), a.received); return '<div class="row" style="min-width:120px">' + barHtml(u, burnCls(u)) + '<span class="small">' + u + '%</span></div>'; } },
+      { t: 'Status', v: function (a) { var x = apr(a.apr); return badge(advStatus(a)) + (x && canAct(x) ? ' <span class="badge info">Your turn</span>' : ''); } }
+    ], all, { rowAct: 'openAdv', rowKey: 'id' }) + '</div>';
+    return h;
+  };
+  function openAdv(id) {
+    var ad = byId(S.advances, id); if (!ad) return; var a = apr(ad.apr), d = dept(ad.dept) || {}, tot = advTotal(ad), rc = advReceipts(ad);
+    var acts = '<button class="btn" data-act="printAdv" data-id="' + ad.id + '">' + ic('print') + 'Request letter</button>';
+    if (a && canAct(a)) acts += '<button class="btn primary" data-act="openApproval" data-id="' + a.id + '">' + ic('check') + 'Review</button>';
+    overlay('<div class="drawer"><div class="dh"><div style="flex:1"><div class="small muted">' + ad.id + ' · ' + esc(d.name || ad.dept) + '</div><h3 style="margin-top:4px">Monthly regular expenses, ' + monthName(ad.month) + '</h3><div style="margin-top:8px">' + badge(advStatus(ad)) + '</div></div><button class="btn sm ghost" data-act="close" aria-label="Close">' + ic('x') + '</button></div><div class="db">' +
+      (a ? '<div class="section-t" style="margin-top:0">Approval</div>' + chainSteps([['Prepared by', d.title || 'Department']].concat(a.chain.map(function (c) { return [c === 'HQ Approval' ? 'Decision' : 'Approval', c]; })), [d.head].concat(a.chain.map(function (c, i) { return a.log && a.log[i] ? a.log[i][1] : ''; })), a) : '') +
+      (a && a.remark ? '<div class="notice warn" style="margin-top:12px">' + ic('alert') + '<span><b>' + esc(a.status) + ':</b> ' + esc(a.remark) + '</span></div>' : '') +
+      '<div class="section-t">Lines</div>' + table([{ t: 'Expense', v: function (l) { return esc(l[0]); } }, { t: 'Amount', cls: 'right num', v: function (l) { return money(l[1]); } }], ad.lines) +
+      '<div class="row" style="margin:10px 2px"><span class="muted">Total requested</span><div class="spacer"></div><b>' + money(tot) + '</b></div>' +
+      '<div class="section-t">Register</div><dl class="kv"><dt>BD office ref.</dt><dd>' + (ad.reg ? '<button class="btn sm" data-act="openReg" data-id="' + esc(ad.reg) + '">' + esc(ad.reg) + '</button>' : '<span class="muted">Created when the Country Director approves</span>') + '</dd><dt>Received from HQ</dt><dd>' + (ad.received ? money(ad.received) : '-') + '</dd></dl>' +
+      (ad.received ? '<div class="section-t">Settlement</div><dl class="kv"><dt>Salaries and bank payments</dt><dd>' + money(ad.other || 0) + '</dd>' + rc.map(function (r) { return '<dt>' + r.id + '</dt><dd>' + money(rcTotal(r)) + ' <span class="small muted">' + esc(r.items[0].d) + '</span></dd>'; }).join('') + '<dt>Used</dt><dd><b>' + money(advUsed(ad)) + '</b> of ' + money(ad.received) + '</dd><dt>Balance</dt><dd><b>' + money(ad.received - advUsed(ad)) + '</b> to carry forward or return</dd></dl>' : '') +
+      '</div><div class="df">' + acts + '</div></div>');
+  }
+  function advLetter(ad) {
+    var d = dept(ad.dept) || {}, tot = advTotal(ad), a = apr(ad.apr);
+    function sg(label, role, i) { var lg = a && a.log && a.log[i]; return '<div class="sg"><div class="sl">' + (lg ? '<span class="dsig">✓ Signed in ERP · ' + date(lg[2]) + '</span>' : '') + '</div><div class="sk">' + label + '</div><b>' + esc(lg ? lg[1] : (S.people[role] || role)) + '</b><span>' + esc(role) + '</span></div>'; }
+    return letterhead(ad.reg || ad.id, ad.date, ad.dept) + '<p>To<br>Türkiye Diyanet Vakfı<br>Headquarter, Ankara</p><p class="subj">Subject: Advance Request for Monthly Regular Expenses, ' + monthName(ad.month) + '</p><p>Dear Sir,</p><p>We kindly request an advance for the regular expenses of the ' + esc(d.name || ad.dept) + ' for ' + monthName(ad.month) + ', as detailed below.</p>' +
+      '<table class="pt"><thead><tr><th style="width:46px">Sl.</th><th>Expense</th><th style="width:160px">Amount (BDT)</th></tr></thead><tbody>' + ad.lines.map(function (l, i) { return '<tr><td>' + (i + 1) + '</td><td>' + esc(l[0]) + '</td><td class="r">' + Number(l[1]).toLocaleString('en-IN') + '</td></tr>'; }).join('') + '<tr class="tot"><td colspan="2" class="r">Total</td><td class="r">' + tot.toLocaleString('en-IN') + '</td></tr></tbody></table>' +
+      '<p><b>In words:</b> ' + words(tot) + ' taka only.</p><div class="signs" style="grid-template-columns:1fr 1fr">' + sg('Checked by', 'Finance Manager', 0) + sg('Approved by', 'Country Director', 1) + '</div><div class="pfoot">Printed from TDV ERP · ' + ad.id + (a ? ' · approval ' + a.id : '') + '</div>';
+  }
+  function afterDecide(a) {
+    if (a.type !== 'Advance') return;
+    var ad = byId(S.advances, a.adv); if (!ad) return;
+    if (a.status === 'Pending' && a.chain[a.step] === 'HQ Approval' && !ad.reg) {
+      ad.reg = regRef('Finance', ad.dept, today());
+      S.register.unshift({ kind: 'Finance', particular: 'Advance Request for Monthly Regular Expenses (' + monthName(ad.month) + ')', dept: ad.dept, date: today(), ref: ad.reg, about: ['Advance', ad.id], status: 'Sent to Headquarter', ext: '', hq: '', link: ad.id + '.pdf', history: [[today(), 'Submitted to Coordination Office'], [today(), 'Sent to Headquarter']] });
+      toast('Register entry ' + ad.reg + ' created (Sent to Headquarter)');
+    }
+    var r = ad.reg && byId(S.register, ad.reg, 'ref');
+    if (r && a.status === 'Approved' && r.status !== 'Approved by Headquarter') { r.status = 'Approved by Headquarter'; r.history.push([today(), r.status]); ad.received = advTotal(ad); }
+    if (r && a.status === 'Rejected' && r.status !== 'Not Approved') { r.status = 'Not Approved'; r.history.push([today(), r.status]); }
+  }
+
+  // ---------- Close-out ----------
+  var CO_ITEMS = [['ack', 'Acknowledgment receipt of payment'], ['pcr', 'Project Completion Report (PCR)'], ['fin', 'Full financial statement'], ['inv', 'Invoice(s)'], ['media', 'Photos and videos with date, location and TDF logo (min. 1 MB)'], ['benlist', 'Beneficiary list with fingerprints or signatures']];
+  function coDue(c) { return { ack: c.paid ? addWorkDays(c.paid, 7) : '', fb: addDays(c.delivered, 14) }; }
+  function coDone(c) { return CO_ITEMS.filter(function (x) { return c.items[x[0]]; }).length; }
+  function coNext(c) { var d = coDue(c); if (!c.items.ack && d.ack) return ['Acknowledgment', d.ack]; return ['Feedback report and PCR', d.fb]; }
+  function coStatus(c) { if (c.submitted) return 'Sent to HQ'; var n = coNext(c), k = daysTo(n[1]); return k < 0 ? 'Overdue' : k <= 14 ? 'Due soon' : 'Not due'; }
+  function coSorted() { return S.closeouts.map(function (c, i) { return { c: c, i: i }; }).sort(function (a, b) { var x = a.c.submitted ? 1 : 0, y = b.c.submitted ? 1 : 0; return x - y || (coNext(a.c)[1] < coNext(b.c)[1] ? -1 : 1); }); }
+  PAGES.closeout = function () {
+    var all = S.closeouts;
+    var h = head('Close-out & Feedback', 'What TDF needs after every payment and delivery: acknowledgment within 7 working days of payment, and the feedback report with PCR 14 days after delivery. When the pack is complete it goes to HQ through the document register.', '');
+    h += '<div class="grid g4" style="margin-bottom:16px">' + kpi('alert', 'bad', 'Overdue', all.filter(function (c) { return coStatus(c) === 'Overdue'; }).length, 'past the deadline', '#/closeout') + kpi('clock', 'warn', 'Due in 14 days', all.filter(function (c) { return coStatus(c) === 'Due soon'; }).length, 'prepare now', '#/closeout') + kpi('check', 'ok', 'Packs complete', all.filter(function (c) { return coDone(c) === CO_ITEMS.length; }).length, 'of ' + all.length, '#/closeout') + kpi('mega', '', 'Sent to HQ', all.filter(function (c) { return c.submitted; }).length, 'with PCR in the register', '#/closeout') + '</div>';
+    h += '<div class="card">' + table([
+      { t: 'Project / stage', v: function (x) { return '<b>' + esc(pname(x.c.project)) + '</b><div class="small muted">' + esc(x.c.stage) + '</div>'; } },
+      { t: 'Delivered', v: function (x) { return date(x.c.delivered); } },
+      { t: 'Next deadline', v: function (x) { if (x.c.submitted) return '<span class="small muted">Sent ' + date(x.c.submitted) + '</span>'; var n = coNext(x.c), k = daysTo(n[1]); return esc(n[0]) + '<div class="small ' + (k < 0 ? '' : 'muted') + '" style="' + (k < 0 ? 'color:var(--bad)' : '') + '">' + date(n[1]) + (k < 0 ? ' · ' + (-k) + ' days late' : k === 0 ? ' · today' : ' · in ' + k + ' days') + '</div>'; } },
+      { t: 'Pack', v: function (x) { var d = coDone(x.c); return '<div class="row" style="min-width:120px">' + barHtml(pct(d, CO_ITEMS.length), d === CO_ITEMS.length ? 'ok' : '') + '<span class="small">' + d + '/' + CO_ITEMS.length + '</span></div>'; } },
+      { t: 'Status', v: function (x) { return badge(coStatus(x.c)); } }
+    ], coSorted(), { rowAct: 'openCo', rowKey: 'i' }) + '</div>';
+    return h;
+  };
+  function openCo(i) {
+    var c = S.closeouts[+i]; if (!c) return; var d = coDue(c), done = coDone(c) === CO_ITEMS.length;
+    overlay('<div class="drawer"><div class="dh"><div style="flex:1"><div class="small muted">Close-out · ' + c.project + '</div><h3 style="margin-top:4px">' + esc(pname(c.project)) + '</h3><div class="small muted">' + esc(c.stage) + '</div><div style="margin-top:8px">' + badge(coStatus(c)) + '</div></div><button class="btn sm ghost" data-act="close" aria-label="Close">' + ic('x') + '</button></div><div class="db">' +
+      '<dl class="kv"><dt>Payment date</dt><dd>' + date(c.paid) + '</dd><dt>Acknowledgment due</dt><dd>' + date(d.ack) + ' <span class="small muted">(7 working days, Fri and Sat off)</span></dd><dt>Delivered</dt><dd>' + date(c.delivered) + '</dd><dt>Feedback + PCR due</dt><dd>' + date(d.fb) + ' <span class="small muted">(14 days after delivery)</span></dd>' + (c.reg ? '<dt>Register</dt><dd><button class="btn sm" data-act="openReg" data-id="' + c.reg + '">' + c.reg + '</button></dd>' : '') + '</dl>' +
+      '<div class="section-t">Feedback pack</div>' + CO_ITEMS.map(function (x) { return '<label class="row chkline" style="padding:7px 0;border-bottom:1px solid var(--line)"><input type="checkbox" class="chk" data-chg="coItem" data-i="' + i + '" data-k="' + x[0] + '" ' + (c.items[x[0]] ? 'checked' : '') + (c.submitted ? ' disabled' : '') + '> ' + x[1] + '</label>'; }).join('') +
+      '<div class="row wrap" style="margin-top:12px"><button class="btn sm" data-act="toast" data-msg="Upload files for the feedback pack (demo)">' + ic('camera') + 'Upload files</button></div>' +
+      '</div>' + (c.submitted ? '' : '<div class="df"><button class="btn primary" data-act="coSubmit" data-i="' + i + '" ' + (done ? '' : 'disabled title="Tick all six items first"') + '>' + ic('mega') + 'Send pack to HQ</button></div>') + '</div>');
+  }
+
+  // ---------- Numbering & print templates ----------
+  PAGES.numbering = function () {
+    var y = today().slice(0, 4);
+    var rows = [
+      ['Official letter', 'TDF-{DEPT}-{YYYYMMDD}-{nnn}', regRef('Official', 'BCO', today()), 'Per department, per year'],
+      ['Finance document', 'BD-{DEPT}-{YYYYMMDD}-{nnn}', regRef('Finance', 'WFD', today()), 'Per department, per year'],
+      ['Requisition', 'REQ-{YYYY}-{nnnn}', nextId('REQ-' + y + '-', S.requisitions, 'id', 4), 'Per year'],
+      ['Partner proposal', 'PPF-{YYYY}-{nnn}', nextId('PPF-' + y + '-', S.proposals, 'id', 3), 'Per year'],
+      ['Advance request', 'ADV-{YYYY}-{nnn}', nextId('ADV-' + y + '-', S.advances, 'id', 3), 'Per year'],
+      ['Cash receipt (Form 250)', 'F250-{YYYY}-{nnnn}', nextId('F250-' + y + '-', S.receipts, 'id', 4), 'Per year'],
+      ['Project', 'PRJ-{YYYY}-{nnn}', nextId('PRJ-' + y + '-', S.projects, 'id', 3), 'Per year']
+    ];
+    var h = head('Numbering & Print Templates', 'Every reference number is issued by the system. Nobody types one by hand, and a number is never reused.', '');
+    h += '<div class="card">' + table([{ t: 'Document', v: function (r) { return '<b>' + r[0] + '</b>'; } }, { t: 'Format', cls: 'num', v: function (r) { return '<code>' + r[1] + '</code>'; } }, { t: 'Next number', cls: 'num', v: function (r) { return '<b>' + r[2] + '</b>'; } }, { t: 'Serial resets', v: function (r) { return r[3]; } }], rows) + '</div>';
+    h += '<p class="small muted">The TDF- and BD- prefixes and the reset rule follow the client\'s reference sheets and are waiting for TDV\'s confirmation.</p>';
+    h += '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Print templates</h3></div>' + table([
+      { t: 'Template', v: function (r) { return '<b>' + r[0] + '</b><div class="small muted">' + r[1] + '</div>'; } },
+      { t: '', cls: 'right', v: function (r) { return r[2]; } }
+    ], [
+      ['Requisition letter', 'Letterhead, item table, 3 or 4 signature boxes by form type', '<button class="btn sm" data-act="printReq" data-id="REQ-2026-0041">' + ic('eye') + 'Preview</button>'],
+      ['Form 250 Gider (Ödeme) Makbuzu', 'Turkish / English, Turkish number format, amount in words', '<button class="btn sm" data-act="printReceipt" data-id="F250-2026-0112">' + ic('eye') + 'Preview</button>'],
+      ['Advance request letter', 'To HQ Ankara, expense lines, Finance and Country Director signatures', '<button class="btn sm" data-act="printAdv" data-id="ADV-2026-011">' + ic('eye') + 'Preview</button>'],
+      ['Project Proposal Form V3', 'Exported as PDF in the 8-page PPF layout', '<button class="btn sm" data-act="toast" data-msg="PPF V3 PDF export is part of phase 4 (demo)">' + ic('eye') + 'Preview</button>']
+    ]) + '</div>';
+    return h;
+  };
+
+  // ---------- Actions ----------
+  ACT.openAdv = function (el) { openAdv(el.dataset.id || el.dataset.i); };
+  ACT.printAdv = function (el) { var a = byId(S.advances, el.dataset.id); if (a) printView('Advance request · ' + a.id, '<div class="letter">' + advLetter(a) + '</div>'); };
+  ACT.newAdv = function () {
+    var nm = new Date(today() + 'T00:00:00'); nm.setMonth(nm.getMonth() + 1); var mv = nm.toISOString().slice(0, 7);
+    var defs = ['Staff salaries', 'Honorarium (imam / teachers)', 'Office rent and utilities', 'Field transport', 'Programme running costs', 'Other'];
+    form('New advance request', 'Monthly regular expenses for one department. Goes to Finance, the Country Director and then HQ.',
+      fieldH('Department', '<select class="select" name="dept">' + opts(S.departments.map(function (d) { return [d.code, d.code + ' - ' + d.name]; }), 'WFD') + '</select>') +
+      fieldH('For month', '<input class="input" type="month" name="month" value="' + mv + '">') +
+      '<div class="full">' + itemRows(6, [{ t: 'Expense', f: function (i) { return '<input class="input sm" name="l' + i + '" value="' + defs[i] + '">'; } }, { t: 'Amount (BDT)', w: '160px', f: function (i) { return '<input class="input sm" type="number" min="0" name="a' + i + '">'; } }]) + '</div>', 'Submit for approval',
+      function (v) {
+        var lines = []; for (var i = 0; i < 6; i++) if (+v['a' + i]) lines.push([v['l' + i], +v['a' + i]]);
+        if (!lines.length) { toast('Enter at least one amount'); return; }
+        var id = nextId('ADV-2026-', S.advances, 'id', 3), aid = nextId('APR-', S.approvals), d = dept(v.dept);
+        S.advances.unshift({ id: id, dept: v.dept, month: v.month, date: today(), lines: lines, apr: aid, reg: '', received: 0, other: 0 });
+        S.approvals.unshift({ id: aid, type: 'Advance', adv: id, title: id + ': ' + v.dept + ' monthly expenses, ' + monthName(v.month), project: '-', requester: me().name, amount: lines.reduce(function (s, l) { return s + l[1]; }, 0), date: today(), chain: S.chains.filter(function (c) { return c.name.indexOf('Advance') === 0; })[0].steps.slice(), step: 0, status: 'Pending', budgetLine: (d ? d.name : v.dept) + ' running costs', docs: [], priority: 'Normal' });
+        audit('Created advance request', id); save(); location.hash = '#/advances'; render(); toast(id + ' sent to Finance Manager');
+      });
+  };
+  ACT.openCo = function (el) { openCo(el.dataset.i); };
+  ACT.coSubmit = function (el) {
+    var c = S.closeouts[+el.dataset.i], p = project(c.project), dp = projDept(c.project) || 'BCO', ref = regRef('Official', dp, today());
+    S.register.unshift({ kind: 'Official', particular: 'Project Completion Report - ' + (p ? p.name : c.project) + ' (' + c.stage + ')', dept: dp, date: today(), ref: ref, about: ['Project', c.project], status: 'Sent to Headquarter', ext: '', hq: '', link: 'PCR-' + c.project + '.pdf', history: [[today(), 'Submitted to Coordination Office'], [today(), 'Sent to Headquarter']] });
+    c.submitted = today(); c.reg = ref; audit('Sent close-out pack', c.project + ' → ' + ref); save(); render(); toast('Pack sent to HQ as ' + ref);
+  };
+  CHG.coItem = function (el) { var c = S.closeouts[+el.dataset.i]; c.items[el.dataset.k] = el.checked; save(); render(); openCo(el.dataset.i); };
+  CHG.holder = function (el) { var old = S.people[el.dataset.role]; S.people[el.dataset.role] = el.value; audit('Changed role holder', el.dataset.role + ': ' + old + ' → ' + el.value); save(); render(); toast(el.dataset.role + ' is now ' + el.value + '. Chains did not change.'); };
 
   // ---------- Events ----------
   document.addEventListener('click', function (e) {
